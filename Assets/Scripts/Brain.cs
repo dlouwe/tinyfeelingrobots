@@ -8,6 +8,8 @@ public class Brain<TEntity> where TEntity : Entity {
   public int cyclesPerUpdate;
   public int cyclesPerUpdateMax = 7;
   public int cyclesPerUpdateMin = 4;
+  // public int cyclesPerUpdateMax = 1;
+  // public int cyclesPerUpdateMin = 1;
 
   private List <GameObject> entities = new List <GameObject> ();
 
@@ -37,12 +39,13 @@ public class Brain<TEntity> where TEntity : Entity {
     }
 
     GameObject randEntity = GetRandomEntity();
-    TEntity entityScript = randEntity.GetComponent<TEntity>();
-    entityScript._Update();
 
     if (!randEntity.activeSelf) {
       RemoveEntity( randEntity );
     }
+    
+    TEntity entityScript = randEntity.GetComponent<TEntity>();
+    entityScript._Update();
 
     if(entityScript.addToBrain != null) {
 

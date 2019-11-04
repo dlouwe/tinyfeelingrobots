@@ -34,8 +34,6 @@ public class Water : Entity {
       newG += (depth*-1) * 16f;
     }
 
-
-
     spriteRenderer.color = new Color(newR/255, newG/255, newB/255, 1f);
 
   }

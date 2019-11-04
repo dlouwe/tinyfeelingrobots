@@ -25,7 +25,7 @@ GameObject:
   - component: {fileID: 114705822018529218}
   m_Layer: 9
   m_Name: Grass
-  m_TagString: Entity
+  m_TagString: Grass
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -102,6 +102,9 @@ MonoBehaviour:
   blockingLayer:
     serializedVersion: 2
     m_Bits: 512
+  addToBrain: {fileID: 0}
+  maxAge: 5000
+  currentAge: 0
 --- !u!212 &212633841407243866
 SpriteRenderer:
   m_ObjectHideFlags: 1

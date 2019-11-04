@@ -5,18 +5,15 @@ using Random = UnityEngine.Random;
 
 public class Grass : Entity {
 
-  private float energy;
-  private float minStartEnergy = 40f;
-  private float maxStartEnergy = 60f;
-  private float maxEnergy = 80f;
-  private float energyLoss = .45f;
+  public float maxAge = 5000f;
+  public float currentAge;
 
   private float maxWaterDistance = 100f;
   private float energyFromWaterMin;
   private float energyFromWaterMax;
 
-  private float energyPerEmptySquareMin = 0.04f;
-  private float energyPerEmptySquareMax = 0.065f;
+  // private float energyPerEmptySquareMin = 0.04f;
+  // private float energyPerEmptySquareMax = 0.065f;
   private float energyPerAdjacentGrassMin = -0.09f;
   private float energyPerAdjacentGrassMax = -0.105f;
 
@@ -36,8 +33,10 @@ public class Grass : Entity {
   // Use this for initialization
   void Start () {
 
-    energyFromWaterMin = 1f;
-    energyFromWaterMax = 1.5f;
+    currentAge = 1f;
+
+    energyFromWaterMin = 2f;
+    energyFromWaterMax = 2.5f;
 
     // generate starting energy
     energy = Random.Range(minStartEnergy, maxStartEnergy);
@@ -47,11 +46,13 @@ public class Grass : Entity {
   // Update is called once per frame
   public override void _Update () {
 
+    currentAge++;
     energy -= energyLoss;
     surroundings = CheckSurroundings();
 
     if (energy <= 1) {
       gameObject.SetActive(false);
+      return;
     }
 
     Feed();
@@ -81,22 +82,23 @@ public class Grass : Entity {
 
   void Feed() {
 
-    // int emptySquares = 8 - surroundings.Length;
-    
+    float totalNewEnergy = 0;
+    // var temp = Time.realtimeSinceStartup;
     float distanceToWater = Mathf.Min(maxWaterDistance, DistanceToWater());
+    // Debug.Log( Time.realtimeSinceStartup - temp );
     float energyFromWaterRatio = Random.Range(energyFromWaterMin, energyFromWaterMax);
     float energyFromWater = energyFromWaterRatio * ((maxWaterDistance - distanceToWater) / maxWaterDistance);
 
     float energyPerAdjacentGrass = Random.Range(energyPerAdjacentGrassMin, energyPerAdjacentGrassMax);
-    // float energyPerEmptySquare = Random.Range(energyPerEmptySquareMin, energyPerEmptySquareMax);
 
-    // if (surroundings.Length > 6) {
-      // energyPerAdjacentGrass *= .9f;
-    // }
-
-    energy += energyFromWater;
+    totalNewEnergy += energyFromWater;
     // energy += emptySquares * energyPerEmptySquare;
-    energy += energyPerAdjacentGrass * surroundings.Length;
+    totalNewEnergy += energyPerAdjacentGrass * surroundings.Length;
+
+    // linearly reduce energy gain as age reaches max
+    totalNewEnergy *= ((maxAge - currentAge) / maxAge);
+
+    changeEnergy(totalNewEnergy);
 
   }
 
@@ -140,24 +142,7 @@ public class Grass : Entity {
   }
 
   float DistanceToWater() {
-    float minDistance = maxWaterDistance;
-    Vector3 currentPosition = transform.position;
-    Collider2D[] collisions = Physics2D.OverlapCircleAll(transform.position, 6.0f, blockingLayer);
-
-    foreach (Collider2D currentCollider in collisions) {
-
-      if (currentCollider.tag != "Water") {
-        continue;
-      }
-
-      Vector3 directionToTarget = currentCollider.transform.position - currentPosition;
-      float dSqrToTarget = directionToTarget.sqrMagnitude;
-      if(dSqrToTarget < minDistance) {
-        minDistance = dSqrToTarget;
-      }
-    }
-
-    return minDistance;
+    return DistanceToTag("Water", 2f, true); // manually set tagChecked true for better performance
   }
   
 }

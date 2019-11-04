@@ -25,6 +25,7 @@ public class BoardManager : MonoBehaviour {
   public GameObject water;
   public GameObject grass;
   public GameObject ground;
+  public GameObject herbivore;
 
   public int gridWidth = 50;
   public int gridHeight = 50;
@@ -37,6 +38,7 @@ public class BoardManager : MonoBehaviour {
   private Transform boardHolder;
 
   public List <Brain<Grass>> grassBrains = new List <Brain<Grass>> ();
+  public List <Brain<Herbivore>> herbivoreBrains = new List <Brain<Herbivore>> ();
 
   void InitializeGrid() {
 
@@ -64,6 +66,7 @@ public class BoardManager : MonoBehaviour {
     int grassSeedsMin = Mathf.RoundToInt(grassSeedsMax * grassChance);
 
     LayoutGrassAtRandom(grass, grassSeedsMin, grassSeedsMax);
+    LayoutHerbivoresAtRandom(herbivore, 1, 1);
 
   }
 
@@ -105,10 +108,26 @@ public class BoardManager : MonoBehaviour {
       Vector2 randomPosition = RandomPosition();
       Brain<Grass> brain = new Brain<Grass>();
 
+      brain.cyclesPerUpdateMax = 20;
+      brain.cyclesPerUpdateMin = 10;
       brain.setMaxSize(20);
       brain.AddEntity(Instantiate(entity, randomPosition, Quaternion.identity));
 
       grassBrains.Add(brain);
+    }
+  }
+
+  void LayoutHerbivoresAtRandom( GameObject entity, int minimum, int maximum ) {
+    int objectCount = Random.Range(minimum, maximum+1);
+
+    for (int i = 0; i < objectCount; i++) {
+      Vector2 randomPosition = RandomPosition();
+      Brain<Herbivore> brain = new Brain<Herbivore>();
+
+      brain.setMaxSize(20);
+      brain.AddEntity(Instantiate(entity, randomPosition, Quaternion.identity));
+
+      herbivoreBrains.Add(brain);
     }
   }
 
@@ -148,6 +167,9 @@ public class BoardManager : MonoBehaviour {
     // run each brain
     foreach (Brain<Grass> grassBrain in grassBrains) {
       grassBrain.Update();
+    }
+    foreach (Brain<Herbivore> herbivoreBrain in herbivoreBrains) {
+      herbivoreBrain.Update();
     }
 
   }
