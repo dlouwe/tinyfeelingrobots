@@ -2,11 +2,27 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Water : Entity {
+public class Water : MonoBehaviour {
 
   private float defaultColourR = 0f;
   private float defaultColourG = 0f;
   private float defaultColourB = 255f;
+
+  public LayerMask blockingLayer;
+  protected BoxCollider2D boxCollider;
+  protected SpriteRenderer spriteRenderer;
+
+  protected Collider2D[] surroundings;
+
+  void Awake () {
+
+    //Get a component reference to this object's BoxCollider2D
+    boxCollider = GetComponent <BoxCollider2D> ();
+
+    //Get a component reference to this object's SpriteRenderer
+    spriteRenderer = GetComponent <SpriteRenderer> ();
+
+  }
 
   public void checkDepth() {
 
@@ -38,7 +54,19 @@ public class Water : Entity {
 
   }
   
-  public override GameObject AttemptGrow() {
+  protected Collider2D[] CheckSurroundings() {
+
+    if (!boxCollider) {return null;}
+
+    boxCollider.enabled = false;
+    Collider2D[] collisions = Physics2D.OverlapBoxAll( transform.position, new Vector2(3, 3), 0f, blockingLayer );
+    boxCollider.enabled = true;
+
+    return collisions;
+
+  }
+  
+  public GameObject AttemptGrow() {
     
     // pick a random direction
     int randX = Random.Range(-1, 2);
@@ -55,15 +83,15 @@ public class Water : Entity {
       Collider2D[] collisions = Physics2D.OverlapBoxAll( randPosition, new Vector2( 1, 1 ), 0f, blockingLayer );
   
       if (collisions.Length == 0) {
-        return Instantiate(gameObject, randPosition, Quaternion.identity);
+        GameObject newWater = Instantiate(gameObject, randPosition, Quaternion.identity);
+        newWater.name = "Water";
+        return newWater;
       }
     }
 
     return null;
     
   }
-
-  public override void _Update() {}
 
   // Use this for initialization
   // void Start () {

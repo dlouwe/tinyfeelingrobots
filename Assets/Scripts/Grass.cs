@@ -1,148 +1,145 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Random = UnityEngine.Random;
+﻿// using System.Collections;
+// using System.Collections.Generic;
+// using UnityEngine;
+// using Random = UnityEngine.Random;
 
-public class Grass : Entity {
+// public class Grass : Entity {
 
-  public float maxAge = 5000f;
-  public float currentAge;
+//   // Use this for initialization
+//   void Start () {
 
-  private float maxWaterDistance = 100f;
-  private float energyFromWaterMin;
-  private float energyFromWaterMax;
+//     // set properties
+//     maxAge = 5000f;
+//     currentAge = 1f;
+//     maxEnergy = 80f;
+//     energyLoss = .35f;
 
-  // private float energyPerEmptySquareMin = 0.04f;
-  // private float energyPerEmptySquareMax = 0.065f;
-  private float energyPerAdjacentGrassMin = -0.09f;
-  private float energyPerAdjacentGrassMax = -0.105f;
+//     healthyRed = 0f;
+//     healthyGreen = 75f;
+//     healthyBlue = 6f;
+//     dyingRed = 125f;
+//     dyingGreen = 190f;
+//     dyingBlue = 0f;
 
-  private float growthThreshold = 60f;
-  private float growthChance = .7f;
-  private float growthCost = 40f;
-  private int growDistanceMax = 2;
-  private int growDistanceMin = 1;
-
-  private float healthyRed = 0f;
-  private float healthyGreen = 75f;
-  private float healthyBlue = 6f;
-  private float dyingRed = 125f;
-  private float dyingGreen = 190f;
-  private float dyingBlue = 0f;
-
-  // Use this for initialization
-  void Start () {
-
-    currentAge = 1f;
-
-    energyFromWaterMin = 2f;
-    energyFromWaterMax = 2.5f;
-
-    // generate starting energy
-    energy = Random.Range(minStartEnergy, maxStartEnergy);
-
-  }
-
-  // Update is called once per frame
-  public override void _Update () {
-
-    currentAge++;
-    energy -= energyLoss;
-    surroundings = CheckSurroundings();
-
-    if (energy <= 1) {
-      gameObject.SetActive(false);
-      return;
-    }
-
-    Feed();
-    addToBrain = AttemptGrow();
-
-    if (energy > maxEnergy) {
-      energy = maxEnergy;
-    }
-
-    // update colour
-    float healthRatio = energy / maxEnergy;
-
-    float redRange = healthyRed - dyingRed;
-    float greenRange = healthyGreen - dyingGreen;
-    float blueRange = healthyBlue - dyingBlue;
+//     growthThreshold = 60f;
+//     growthChance = .7f;
+//     growthCost = 40f;
     
-    float redDiff = redRange * healthRatio;
-    float greenDiff = greenRange * healthRatio;
-    float blueDiff = blueRange * healthRatio;
+//     // set up property ranges
+//     startEnergy = new PropertyRange(40f, 60f);
+//     energyFromWater = new PropertyRange(2f, 2.5f);
+//     energyPerAdjacentSame = new PropertyRange(-0.09f, -0.105f);
+//     growDistance = new PropertyRange(1f,3f);
 
-    float newRed = (dyingRed + redDiff) / 255;
-    float newGreen = (dyingGreen + greenDiff) / 255;
-    float newBlue = (dyingBlue + blueDiff) / 255;
+//     // set starting energy
+//     energy = startEnergy.randVal;
+
+//   }
+
+//   // Update is called once per frame
+//   public override void _Update () {
+
+//     currentAge++;
+//     energy -= energyLoss;
+//     surroundings = CheckSurroundings();
+
+//     if (energy <= 1) {
+//       gameObject.SetActive(false);
+//       return;
+//     }
+
+//     Feed();
+//     addToBrain = AttemptGrow();
+
+//     if (energy > maxEnergy) {
+//       energy = maxEnergy;
+//     }
+
+//     // update colour
+//     float healthRatio = energy / maxEnergy;
+
+//     float redRange = healthyRed - dyingRed;
+//     float greenRange = healthyGreen - dyingGreen;
+//     float blueRange = healthyBlue - dyingBlue;
     
-    spriteRenderer.color = new Color(newRed, newGreen, newBlue, 1f);
-  }
+//     float redDiff = redRange * healthRatio;
+//     float greenDiff = greenRange * healthRatio;
+//     float blueDiff = blueRange * healthRatio;
 
-  void Feed() {
+//     float newRed = (dyingRed + redDiff) / 255;
+//     float newGreen = (dyingGreen + greenDiff) / 255;
+//     float newBlue = (dyingBlue + blueDiff) / 255;
+    
+//     spriteRenderer.color = new Color(newRed, newGreen, newBlue, 1f);
+//   }
 
-    float totalNewEnergy = 0;
-    // var temp = Time.realtimeSinceStartup;
-    float distanceToWater = Mathf.Min(maxWaterDistance, DistanceToWater());
-    // Debug.Log( Time.realtimeSinceStartup - temp );
-    float energyFromWaterRatio = Random.Range(energyFromWaterMin, energyFromWaterMax);
-    float energyFromWater = energyFromWaterRatio * ((maxWaterDistance - distanceToWater) / maxWaterDistance);
+//   void Feed() {
 
-    float energyPerAdjacentGrass = Random.Range(energyPerAdjacentGrassMin, energyPerAdjacentGrassMax);
+//     float totalNewEnergy = 0;
+//     float distanceToWater = Mathf.Min(maxWaterDistance, DistanceToWater());
+//     float energyFromWaterTotal = energyFromWater.randVal * ((maxWaterDistance - distanceToWater) / maxWaterDistance);
 
-    totalNewEnergy += energyFromWater;
-    // energy += emptySquares * energyPerEmptySquare;
-    totalNewEnergy += energyPerAdjacentGrass * surroundings.Length;
+//     // determine surrounding grass
+//     int surroundingSame = 0;
+//     foreach (Collider2D curSurrounding in surroundings) {
+//       if (curSurrounding.name == gameObject.name) {
+//         surroundingSame++;
+//       }
+//     }
 
-    // linearly reduce energy gain as age reaches max
-    totalNewEnergy *= ((maxAge - currentAge) / maxAge);
+//     totalNewEnergy += energyFromWaterTotal;
+//     totalNewEnergy += energyPerAdjacentSame.randVal * surroundingSame;
 
-    changeEnergy(totalNewEnergy);
+//     // linearly reduce energy gain as age reaches max
+//     totalNewEnergy *= ((maxAge - currentAge) / maxAge);
 
-  }
+//     changeEnergy(totalNewEnergy);
 
-  public override GameObject AttemptGrow () {
+//   }
 
-    // do we meet conditions to grow?
-    if (energy > growthThreshold && surroundings.Length < 8 && Random.Range(0f,1f) <= growthChance) {
+//   public override GameObject AttemptGrow () {
 
-      GameObject newGrass = Grow();
-      if (newGrass != null) {
-        energy -= growthCost;
-        return newGrass;
-      }
+//     // do we meet conditions to grow?
+//     if (energy > growthThreshold && surroundings.Length < 8 && Random.Range(0f,1f) <= growthChance) {
 
-    }
-    return null;
-  }
+//       GameObject newGrass = Grow();
+//       if (newGrass != null) {
+//         energy -= growthCost;
+//         return newGrass;
+//       }
 
-  GameObject Grow() {
+//     }
+//     return null;
+//   }
 
-    int growDistance = Random.Range(growDistanceMin, growDistanceMax+1);
+//   GameObject Grow() {
+
+//     int growDistanceVal = (int) growDistance.randVal;
   
-    // pick a random direction
-    int randX = Random.Range(growDistance*-1, growDistance+1);
-    int randY = Random.Range(growDistance*-1, growDistance+1);
+//     // pick a random direction
+//     int randX = Random.Range(growDistanceVal*-1, growDistanceVal+1);
+//     int randY = Random.Range(growDistanceVal*-1, growDistanceVal+1);
 
-    // skip if we pick center
-    if (randX != 0 || randY != 0) {
-      Vector2 randPosition = (Vector2) transform.position + new Vector2( randX, randY );
+//     // skip if we pick center
+//     if (randX != 0 || randY != 0) {
+//       Vector2 randPosition = (Vector2) transform.position + new Vector2( randX, randY );
       
-      // check if there's anything there
-      Collider2D[] collisions = Physics2D.OverlapBoxAll( randPosition, new Vector2( 1, 1 ), 0f, blockingLayer );
+//       // check if there's anything there
+//       Collider2D[] collisions = Physics2D.OverlapBoxAll( randPosition, new Vector2( 1, 1 ), 0f, blockingLayer );
     
-      if (collisions.Length == 0) {
-        return Instantiate(gameObject, randPosition, Quaternion.identity);
-      }
-    }
+//       if (collisions.Length == 0) {
+//         GameObject newGrass = Instantiate(gameObject, randPosition, Quaternion.identity);
+//         newGrass.name = "Grass";
+//         return newGrass;
+//       }
+//     }
 
-    return null;
+//     return null;
 
-  }
+//   }
 
-  float DistanceToWater() {
-    return DistanceToTag("Water", 2f, true); // manually set tagChecked true for better performance
-  }
+//   float DistanceToWater() {
+//     return DistanceToTag("Water", 2f);
+//   }
   
-}
+// }

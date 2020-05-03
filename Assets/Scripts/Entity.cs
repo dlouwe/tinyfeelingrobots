@@ -1,17 +1,24 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
-public abstract class Entity : MonoBehaviour {
+public class Entity : MonoBehaviour {
+  
+  public float currentAge;
+  public float maxAge;
 
   public LayerMask blockingLayer;
   public GameObject addToBrain = null;
 
-  protected float energy;
-  protected float minStartEnergy = 40f;
-  protected float maxStartEnergy = 60f;
-  protected float maxEnergy = 80f;
-  protected float energyLoss = .35f;
+  public float energy;
+  public float maxEnergy;
+  public float energyLoss;
+  
+  protected float maxWaterDistance = 75f;
+  private float maxSearchDistance = 40f;
+  private float maxPathNodes = 25f;
+  private float defaultSearchDistance = 4f;
 
   protected GameObject pathfindTarget = null;
   protected float speed = 0f;
@@ -22,8 +29,37 @@ public abstract class Entity : MonoBehaviour {
   protected Rigidbody2D rb2D;
   protected SpriteRenderer spriteRenderer;
 
-  private float maxSearchDistance = 300f;
-  private float defaultSearchDistance = 2f;
+  public PropertyRange hungerThreshold;
+  public float hungerThresholdBase;
+  public float hungerThresholdVariance;
+
+  protected PropertyRange startEnergy;
+  public float startEnergyBase;
+  public float startEnergyVariance;
+  protected PropertyRange energyPerAdjacentSame;
+  public float energyPerAdjacentSameBase;
+  public float energyPerAdjacentSameVariance;
+  protected PropertyRange energyFromWater;
+  public float energyFromWaterBase;
+  public float energyFromWaterVariance;
+  protected PropertyRange growDistance;
+  public float growDistanceBase;
+  public float growDistanceVariance;
+  
+  public float size;
+
+  public float healthyRed;
+  public float healthyGreen;
+  public float healthyBlue;
+  public float dyingRed;
+  public float dyingGreen;
+  public float dyingBlue;
+  
+  public float growthThreshold;
+  public float growthChance;
+  public float growthCost;
+  
+  private bool isAwake = false;
 
   // Use this for initialization
   void Awake () {
@@ -37,7 +73,22 @@ public abstract class Entity : MonoBehaviour {
     //Get a component reference to this object's SpriteRenderer
     spriteRenderer = GetComponent <SpriteRenderer> ();
 
+    startEnergy = new PropertyRange(startEnergyBase, startEnergyVariance);
+    energyFromWater = new PropertyRange(energyFromWaterBase, energyFromWaterVariance);
+    energyPerAdjacentSame = new PropertyRange(energyPerAdjacentSameBase, energyPerAdjacentSameVariance);
+    growDistance = new PropertyRange(growDistanceBase,growDistanceVariance);
+    hungerThreshold = new PropertyRange(hungerThresholdBase,hungerThresholdVariance);
+
+    // set starting energy
+    energy = startEnergy.randVal;
+
+    currentAge = 1;
+    
+    isAwake = true;
+
   }
+
+  void Start() {}
 
   protected void MoveToTarget() {
 
@@ -45,11 +96,11 @@ public abstract class Entity : MonoBehaviour {
     
     List<Path> path = getBestPath();
     
-    if (path != null && path.Count > 1) {
+    if (path != null && path.Count > 2) {
       transform.position = new Vector2(path[1].x, path[1].y);
     }
-    if (path != null && path.Count == 1) {
-      pathfindTarget.SetActive(false);
+    if (path != null && path.Count == 2) {
+      Eat(pathfindTarget);
     }
     
   }
@@ -66,8 +117,15 @@ public abstract class Entity : MonoBehaviour {
     while (evaluationList.Count > 0) {
 
       currentSquare = getPathWithLowestFScore(evaluationList);
-
-      // Debug.Log(currentSquare.x + " " + currentSquare.y);
+      
+      // hard-limit path nodes when no path can be found
+      if (evaluationList.Count > maxPathNodes || closedPathList.Count > 500) { 
+        
+        // this may be a bad path; pick a new target
+        pathfindTarget = null;
+        
+        return buildPath(currentSquare); 
+      }
 
       closedPathList.Add(currentSquare);
       evaluationList.Remove(currentSquare);
@@ -97,6 +155,7 @@ public abstract class Entity : MonoBehaviour {
   }
 
   private bool doesPathListContain( List<Path> haystack, Path needle ) {
+    
     foreach (Path p in haystack) {
       if (p.x == needle.x && p.y == needle.y) {
         return true;
@@ -123,8 +182,142 @@ public abstract class Entity : MonoBehaviour {
     
   // }
 
-  public abstract GameObject AttemptGrow();
-  public abstract void _Update();
+  public void _Update() {
+    
+    if (!isAwake) { return; }
+    
+    currentAge++;
+    energy -= energyLoss;
+    surroundings = CheckSurroundings();
+    
+    if (energy <= 1) {
+      gameObject.SetActive(false);
+      return;
+    }
+    
+    float currentHungerThreshold = hungerThreshold.randVal;
+    
+    if (currentHungerThreshold >= 0 && energy < currentHungerThreshold) {
+      
+      if (!pathfindTarget || !pathfindTarget.activeInHierarchy) {
+        pathfindTarget = GetMeal();
+      }
+    
+      if (pathfindTarget != null) {
+        MoveToTarget();
+      }
+    }
+    
+    Feed();
+    addToBrain = AttemptGrow();
+
+    if (energy > maxEnergy) {
+      energy = maxEnergy;
+    }
+
+    // update colour
+    float healthRatio = energy / maxEnergy;
+
+    float redRange = healthyRed - dyingRed;
+    float greenRange = healthyGreen - dyingGreen;
+    float blueRange = healthyBlue - dyingBlue;
+    
+    float redDiff = redRange * healthRatio;
+    float greenDiff = greenRange * healthRatio;
+    float blueDiff = blueRange * healthRatio;
+
+    float newRed = (dyingRed + redDiff) / 255;
+    float newGreen = (dyingGreen + greenDiff) / 255;
+    float newBlue = (dyingBlue + blueDiff) / 255;
+    
+    spriteRenderer.color = new Color(newRed, newGreen, newBlue, 1f);
+
+  }
+
+  void Feed() {
+    float totalNewEnergy = 0;
+    float energyFromWaterVal = energyFromWater.randVal;
+    float energyFromSurroundingSameVal = energyPerAdjacentSame.randVal;
+    
+    if (energyFromWaterVal > 0) {
+      float distanceToWater = Mathf.Min(maxWaterDistance, DistanceToWater());
+      float energyFromWaterTotal = energyFromWaterVal * ((maxWaterDistance - distanceToWater) / maxWaterDistance);
+      
+      totalNewEnergy += energyFromWaterTotal;
+    }
+
+    if (energyFromSurroundingSameVal != 0) {
+      // determine same surrounding object
+      int surroundingSame = 0;
+      foreach (Collider2D curSurrounding in surroundings) {
+        if (curSurrounding.name == gameObject.name) {
+          surroundingSame++;
+        }
+      }
+
+      totalNewEnergy += energyFromSurroundingSameVal * surroundingSame;
+
+    }
+
+    // linearly reduce energy gain as age reaches max
+    totalNewEnergy *= ((maxAge - currentAge) / maxAge);
+    
+    changeEnergy(totalNewEnergy);
+
+  }
+  
+  void Eat(GameObject meal) {
+    
+    Entity targetEntity = pathfindTarget.GetComponent<Entity>();
+    float targetEnergy = targetEntity.energy;
+    
+    float totalNewEnergy = targetEnergy * ((maxAge - currentAge) / maxAge);
+    
+    this.energy += totalNewEnergy;
+    targetEntity.Die();
+    
+  }
+
+  public GameObject AttemptGrow () {
+
+    // do we meet conditions to grow?
+    if (energy > growthThreshold && surroundings != null && surroundings.Length < 8 && Random.Range(0f,1f) <= growthChance) {
+
+      GameObject newObj = Grow();
+      if (newObj != null) {
+        energy -= growthCost;
+        return newObj;
+      }
+
+    }
+    return null;
+  }
+
+  GameObject Grow() {
+
+    int growDistanceVal = (int) growDistance.randVal;
+  
+    // pick a random direction
+    int randX = Random.Range(growDistanceVal*-1, growDistanceVal+1);
+    int randY = Random.Range(growDistanceVal*-1, growDistanceVal+1);
+
+    // skip if we pick center
+    if (randX != 0 || randY != 0) {
+      Vector2 randPosition = (Vector2) transform.position + new Vector2( randX, randY );
+      
+      // check if there's anything there
+      Collider2D[] collisions = Physics2D.OverlapBoxAll( randPosition, new Vector2( 1, 1 ), 0f, blockingLayer );
+    
+      if (collisions.Length == 0) {
+        GameObject newObj = Instantiate(gameObject, randPosition, Quaternion.identity);
+        newObj.name = gameObject.name;
+        return newObj;
+      }
+    }
+
+    return null;
+
+  }
 
   protected Collider2D[] CheckSurroundings() {
 
@@ -141,18 +334,42 @@ public abstract class Entity : MonoBehaviour {
   public void changeEnergy( float energyChange ) {
     energy += energyChange;
   }
+  
+  protected GameObject GetMeal() {
+    return GetMeal(defaultSearchDistance);
+  }
+  
+  protected GameObject GetMeal(float searchDistance) {
+    
+    float minDistance = maxSearchDistance * maxSearchDistance;
+    // GameObject closestObject = null;
+    Vector3 currentPosition = transform.position;
+    List<Collider2D> filteredCollisions = new List<Collider2D>();
 
-  protected GameObject GetClosestTag(string targetTag, float searchDistance, bool tagChecked) {
+    boxCollider.enabled = false;
+    Collider2D[] collisions = Physics2D.OverlapCircleAll(transform.position, searchDistance, blockingLayer);
+    boxCollider.enabled = true;
 
-    // check to make sure target tag exists anywhere
-    // ** POOR PERFORMANCE - Avoid tagChecked = false when possible ** //
-    // perhaps cache checked tags for X cycles?
-    if (!tagChecked) {
-      GameObject[] gos = GameObject.FindGameObjectsWithTag(targetTag);
-      if (gos.Length == 0) {
-        return null;
+    foreach (Collider2D currentCollider in collisions) {
+      if (currentCollider.gameObject.tag == "Entity" && currentCollider.gameObject.GetComponent<Entity>().size < size) {
+        filteredCollisions.Add(currentCollider);
       }
     }
+
+    // if we had no collisions, expand search range
+    if (filteredCollisions.Count == 0) {
+      if (searchDistance < maxSearchDistance) { return GetMeal(maxSearchDistance); } 
+      else                                    { return null; }
+    }
+    
+    // pick random meal in range
+    int randMeal = Random.Range(0, filteredCollisions.Count);
+
+    return filteredCollisions[randMeal].gameObject;
+    
+  }
+
+  protected GameObject GetClosestByName(string targetName, float searchDistance) {
 
     float minDistance = maxSearchDistance * maxSearchDistance;
     GameObject closestObject = null;
@@ -164,14 +381,15 @@ public abstract class Entity : MonoBehaviour {
     boxCollider.enabled = true;
 
     foreach (Collider2D currentCollider in collisions) {
-      if (currentCollider.tag == targetTag) {
+      if (currentCollider.name == targetName) {
         filteredCollisions.Add(currentCollider);
       }
     }
 
     // if we had no collisions, expand search range
     if (filteredCollisions.Count == 0) {
-      return GetClosestTag(targetTag, searchDistance + 2f, true);
+      if (searchDistance < maxSearchDistance) { return GetClosestByName(targetName, searchDistance + 2f); } 
+      else                                    { return null; }
     }
 
     foreach (Collider2D currentCollider in filteredCollisions) {
@@ -188,8 +406,8 @@ public abstract class Entity : MonoBehaviour {
     return closestObject;
   }
 
-  protected float DistanceToTag(string targetTag, float searchDistance, bool tagChecked) {
-    GameObject closestObject = GetClosestTag(targetTag, searchDistance, false);
+  protected float DistanceByName(string targetName, float searchDistance) {
+    GameObject closestObject = GetClosestByName(targetName, searchDistance);
 
     if (closestObject != null) {
       Vector3 currentPosition = transform.position;
@@ -200,14 +418,9 @@ public abstract class Entity : MonoBehaviour {
     }
   }
 
-  // default to tag not checked
-  protected float DistanceToTag(string targetTag, float searchDistance) {
-    return DistanceToTag(targetTag, searchDistance, false);
-  }
-
   // default distance
-  protected float DistanceToTag(string targetTag) {
-    return DistanceToTag(targetTag, defaultSearchDistance);
+  protected float DistanceByName(string targetName) {
+    return DistanceByName(targetName, defaultSearchDistance);
   }
 
   private List<Path> GetAdjacentSquares(Path p) {
@@ -224,7 +437,7 @@ public abstract class Entity : MonoBehaviour {
         if (x == 0 && y == 0) {
           continue;
         }
-        else if (!CheckForCollision(new Vector2(_x,_y),new Vector2(__x,__y))) {
+        else if (!CheckForPathCollision(new Vector2(_x,_y),new Vector2(__x,__y))) {
           ret.Add(new Path(p.g+1, BlocksToTarget(new Vector2(__x,__y), pathfindTarget.transform.position), p, __x, __y));
         }
       }
@@ -253,7 +466,7 @@ public abstract class Entity : MonoBehaviour {
       return final;
   }
   
-  private bool CheckForCollision(Vector2 start, Vector2 end) {
+  private bool CheckForPathCollision(Vector2 start, Vector2 end) {
     this.GetComponent<BoxCollider2D>().enabled = false;
     RaycastHit2D hit = Physics2D.Linecast (start, end, blockingLayer);
     this.GetComponent<BoxCollider2D>().enabled = true;
@@ -269,14 +482,38 @@ public abstract class Entity : MonoBehaviour {
           return false;
         }
       }
-
-      return true;
+      
+      if (hit.transform.gameObject.tag == "Water") {
+        return true;
+      }
     }
     return false;
   }
 
   private void Die() {
     gameObject.SetActive(false);
+  }
+  
+  public struct PropertyRange {
+
+    public float min;
+    public float max;
+
+    public PropertyRange(float _base, float _var) {
+      min = _base - _var;
+      max = _base + _var;
+    }
+
+    public float randVal {
+      get {
+        return Random.Range(min, max);
+      }
+    }
+
+  }
+  
+  float DistanceToWater() {
+    return DistanceByName("Water", 2f);
   }
 }
 

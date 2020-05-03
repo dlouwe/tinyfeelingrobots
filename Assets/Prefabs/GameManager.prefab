@@ -1,21 +1,11 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1001 &100100000
-Prefab:
-  m_ObjectHideFlags: 1
-  serializedVersion: 2
-  m_Modification:
-    m_TransformParent: {fileID: 0}
-    m_Modifications: []
-    m_RemovedComponents: []
-  m_SourcePrefab: {fileID: 0}
-  m_RootGameObject: {fileID: 1912739109626892}
-  m_IsPrefabAsset: 1
 --- !u!1 &1912739109626892
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4201397660577148}
@@ -30,9 +20,10 @@ GameObject:
   m_IsActive: 1
 --- !u!4 &4201397660577148
 Transform:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1912739109626892}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -43,9 +34,10 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &114140484448499338
 MonoBehaviour:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1912739109626892}
   m_Enabled: 1
   m_EditorHideFlags: 0
@@ -54,9 +46,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
 --- !u!114 &114155461749540808
 MonoBehaviour:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1912739109626892}
   m_Enabled: 1
   m_EditorHideFlags: 0
@@ -66,10 +59,10 @@ MonoBehaviour:
   blockingLayer:
     serializedVersion: 2
     m_Bits: 512
-  water: {fileID: 1444673565350492, guid: bb0738235c9ac394388656d07168ed8a, type: 2}
-  grass: {fileID: 1522698477088948, guid: f8d67c437328acc44a887b8993b4f876, type: 2}
-  ground: {fileID: 1378001606438150, guid: 8da99c47a262e0947917304b2e62170a, type: 2}
-  herbivore: {fileID: 1372270510580250, guid: 867452254c69e254b9c041835b781ba2, type: 2}
+  water: {fileID: 1444673565350492, guid: bb0738235c9ac394388656d07168ed8a, type: 3}
+  grass: {fileID: 1522698477088948, guid: f8d67c437328acc44a887b8993b4f876, type: 3}
+  ground: {fileID: 1378001606438150, guid: 8da99c47a262e0947917304b2e62170a, type: 3}
+  herbivore: {fileID: 1372270510580250, guid: 867452254c69e254b9c041835b781ba2, type: 3}
   gridWidth: 50
   gridHeight: 50
   grassChance: 0.1

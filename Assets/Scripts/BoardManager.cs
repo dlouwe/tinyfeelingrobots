@@ -37,11 +37,11 @@ public class BoardManager : MonoBehaviour {
 
   private Transform boardHolder;
 
-  public List <Brain<Grass>> grassBrains = new List <Brain<Grass>> ();
-  public List <Brain<Herbivore>> herbivoreBrains = new List <Brain<Herbivore>> ();
+  public List <Brain> brains = new List <Brain> ();
 
   void InitializeGrid() {
 
+    water.name = "Water";
     LayoutObjectAtRandom(water, waterSeedsMin, waterSeedsMax);
 
     GameObject[] waterTiles = GameObject.FindGameObjectsWithTag("Water");
@@ -65,8 +65,8 @@ public class BoardManager : MonoBehaviour {
     int grassSeedsMax = Mathf.RoundToInt(totalSquares * grassChance);
     int grassSeedsMin = Mathf.RoundToInt(grassSeedsMax * grassChance);
 
-    LayoutGrassAtRandom(grass, grassSeedsMin, grassSeedsMax);
-    LayoutHerbivoresAtRandom(herbivore, 1, 1);
+    LayoutEntityAtRandom(grass, grassSeedsMin, grassSeedsMax, 60);
+    LayoutEntityAtRandom(herbivore, 2, 2, 2);
 
   }
 
@@ -97,37 +97,28 @@ public class BoardManager : MonoBehaviour {
 
     for (int i = 0; i < objectCount; i++) {
       Vector2 randomPosition = RandomPosition();
-      Instantiate(entity, randomPosition, Quaternion.identity);
+      GameObject newObj = Instantiate(entity, randomPosition, Quaternion.identity);
+      newObj.name = entity.name;
     }
   }
 
-  void LayoutGrassAtRandom( GameObject entity, int minimum, int maximum ) {
+  void LayoutEntityAtRandom( GameObject entity, int minimum, int maximum, int maxSize ) {
     int objectCount = Random.Range(minimum, maximum+1);
 
     for (int i = 0; i < objectCount; i++) {
       Vector2 randomPosition = RandomPosition();
-      Brain<Grass> brain = new Brain<Grass>();
+      Brain brain = new Brain();
 
       brain.cyclesPerUpdateMax = 20;
       brain.cyclesPerUpdateMin = 10;
-      brain.setMaxSize(20);
-      brain.AddEntity(Instantiate(entity, randomPosition, Quaternion.identity));
+      brain.setMaxSize(maxSize);
 
-      grassBrains.Add(brain);
-    }
-  }
+      GameObject newEntity = Instantiate(entity, randomPosition, Quaternion.identity);
+      newEntity.name = entity.name;
 
-  void LayoutHerbivoresAtRandom( GameObject entity, int minimum, int maximum ) {
-    int objectCount = Random.Range(minimum, maximum+1);
+      brain.AddEntity(newEntity);
 
-    for (int i = 0; i < objectCount; i++) {
-      Vector2 randomPosition = RandomPosition();
-      Brain<Herbivore> brain = new Brain<Herbivore>();
-
-      brain.setMaxSize(20);
-      brain.AddEntity(Instantiate(entity, randomPosition, Quaternion.identity));
-
-      herbivoreBrains.Add(brain);
+      brains.Add(brain);
     }
   }
 
@@ -145,7 +136,8 @@ public class BoardManager : MonoBehaviour {
 
   void LayoutObjectAtPosition( GameObject entity, int x, int y ) {
     Vector2 position = new Vector2(x, y);
-    Instantiate(entity, position, Quaternion.identity);
+    GameObject newObject = Instantiate(entity, position, Quaternion.identity);
+    newObject.name = entity.name;
   }
 
   public void SetupGame() {
@@ -164,13 +156,34 @@ public class BoardManager : MonoBehaviour {
   // Update is called once per frame
   void Update () {
     
+    List<Brain> newBrains = new List<Brain>();
+    List<Brain> removeBrains = new List<Brain>();
+    
     // run each brain
-    foreach (Brain<Grass> grassBrain in grassBrains) {
-      grassBrain.Update();
+    foreach (Brain brain in brains) {
+      
+      if (brain.getCurrentSize() >= brain.getMaxSize()) {
+        
+        Brain newBrain = new Brain();
+        newBrain.setMaxSize(brain.getMaxSize());
+        newBrain.cyclesPerUpdateMax = brain.cyclesPerUpdateMax;
+        newBrain.cyclesPerUpdateMin = brain.cyclesPerUpdateMin;
+        newBrain.setEntities( brain.Split() );
+        newBrains.Add(newBrain);
+        
+      }
+      
+      if (brain.getCurrentSize() >= 1) {
+        brain.Update();
+      }
+      else {
+        removeBrains.Add(brain);
+      }
     }
-    foreach (Brain<Herbivore> herbivoreBrain in herbivoreBrains) {
-      herbivoreBrain.Update();
-    }
+    
+    foreach (Brain newBrain in newBrains) { brains.Add(newBrain); }
+    foreach (Brain removeBrain in removeBrains) { brains.Remove(removeBrain); }
+    
 
   }
 }

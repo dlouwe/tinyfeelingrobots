@@ -1,32 +1,32 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿// using System.Collections;
+// using System.Collections.Generic;
+// using UnityEngine;
 
-public class Herbivore : Entity {
+// public class Herbivore : Entity {
   
-  public override GameObject AttemptGrow() {
+//   public override GameObject AttemptGrow() {
 
-    return null;
+//     return null;
     
-  }
+//   }
 
-  public override void _Update() {
+//   public override void _Update() {
 
-    pathfindTarget = GetClosestTag("Grass", 6f, false);
+//     pathfindTarget = GetClosestTag("Grass", 6f);
 
-    if (pathfindTarget != null) {
-      MoveToTarget();
-    }
+//     if (pathfindTarget != null) {
+//       MoveToTarget();
+//     }
 
-  }
+//   }
 
-  // Use this for initialization
-  // void Start () {
+//   // Use this for initialization
+//   // void Start () {
     
-  // }
+//   // }
   
-  // Update is called once per frame
-  // void Update () {
+//   // Update is called once per frame
+//   // void Update () {
     
-  // }
-}
+//   // }
+// }

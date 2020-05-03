@@ -2,19 +2,27 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Brain<TEntity> where TEntity : Entity {
+public class Brain {
 
   private int maxSize = 0;
   public int cyclesPerUpdate;
-  public int cyclesPerUpdateMax = 7;
-  public int cyclesPerUpdateMin = 4;
-  // public int cyclesPerUpdateMax = 1;
-  // public int cyclesPerUpdateMin = 1;
+  // public int cyclesPerUpdateMax = 7;
+  // public int cyclesPerUpdateMin = 4;
+  public int cyclesPerUpdateMax = 1;
+  public int cyclesPerUpdateMin = 1;
 
   private List <GameObject> entities = new List <GameObject> ();
 
   public int getMaxSize() {
     return maxSize;
+  }
+  
+  public int getCurrentSize() {
+    return entities.Count;
+  }
+  
+  public void setEntities(List <GameObject> newEntities) {
+    entities = newEntities;
   }
 
   public void setMaxSize( int maxSize ) {
@@ -44,7 +52,7 @@ public class Brain<TEntity> where TEntity : Entity {
       RemoveEntity( randEntity );
     }
     
-    TEntity entityScript = randEntity.GetComponent<TEntity>();
+    Entity entityScript = randEntity.GetComponent<Entity>();
     entityScript._Update();
 
     if(entityScript.addToBrain != null) {
@@ -60,7 +68,7 @@ public class Brain<TEntity> where TEntity : Entity {
   bool AttemptGrow() {
     if (maxSize > 0 && entities.Count > 0 && entities.Count < maxSize) {
       GameObject randEntity = GetRandomEntity();
-      return randEntity.GetComponent<TEntity>().AttemptGrow();
+      return randEntity.GetComponent<Entity>().AttemptGrow();
     }
 
     return false;
@@ -84,4 +92,30 @@ public class Brain<TEntity> where TEntity : Entity {
     int randIndex = Random.Range(0, entities.Count);
     return entities[randIndex];
   }
+  
+  public List <GameObject> Split() {
+    
+    int length = entities.Count;
+    float newLength = length / 2;
+    
+    List <GameObject> listOne = new List <GameObject> ();
+    List <GameObject> listTwo = new List <GameObject> ();
+    
+    for (int x = 0; x < length; x++) {
+      
+      if (x < newLength) {
+        listOne.Add(entities[x]);
+      }
+      else {
+        listTwo.Add(entities[x]);
+      }
+      
+    }
+    
+    setEntities(listOne);
+    
+    return listTwo;
+    
+  }
+  
 }
