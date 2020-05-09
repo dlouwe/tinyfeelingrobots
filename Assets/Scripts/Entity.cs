@@ -31,35 +31,49 @@ public class Entity : MonoBehaviour {
 
   public PropertyRange hungerThreshold;
   public float hungerThresholdBase;
+  public float hungerThresholdFactor;
   public float hungerThresholdVariance;
 
   protected PropertyRange startEnergy;
   public float startEnergyBase;
+  public float startEnergyFactor;
   public float startEnergyVariance;
-  protected PropertyRange energyPerAdjacentSame;
-  public float energyPerAdjacentSameBase;
-  public float energyPerAdjacentSameVariance;
   protected PropertyRange energyFromWater;
   public float energyFromWaterBase;
+  public float energyFromWaterFactor;
   public float energyFromWaterVariance;
   protected PropertyRange growDistance;
   public float growDistanceBase;
+  public float growDistanceFactor;
   public float growDistanceVariance;
+  
+  protected PropertyRange speedFactor;
   
   public float size;
 
   public float healthyRed;
   public float healthyGreen;
   public float healthyBlue;
-  public float dyingRed;
-  public float dyingGreen;
-  public float dyingBlue;
+  public float dyingRed = 0f;
+  public float dyingGreen = 0f;
+  public float dyingBlue = 0f;
   
   public float growthThreshold;
   public float growthChance;
   public float growthCost;
   
   private bool isAwake = false;
+  
+  // flag if entity can perform any movement
+  public bool canMove;
+  
+  private float waitCycles = 0f;
+  private float idleCycles = 0f;
+  
+  // action duration defaults; to be modified by speed
+  private float eatDuration = 5f;
+  private float reproduceDuration = 5f;
+  private float moveDuration = 5f;
 
   // Use this for initialization
   void Awake () {
@@ -72,12 +86,19 @@ public class Entity : MonoBehaviour {
 
     //Get a component reference to this object's SpriteRenderer
     spriteRenderer = GetComponent <SpriteRenderer> ();
+    
 
-    startEnergy = new PropertyRange(startEnergyBase, startEnergyVariance);
-    energyFromWater = new PropertyRange(energyFromWaterBase, energyFromWaterVariance);
-    energyPerAdjacentSame = new PropertyRange(energyPerAdjacentSameBase, energyPerAdjacentSameVariance);
-    growDistance = new PropertyRange(growDistanceBase,growDistanceVariance);
-    hungerThreshold = new PropertyRange(hungerThresholdBase,hungerThresholdVariance);
+    float startEnergyReal = startEnergyBase*startEnergyFactor;
+    startEnergy = new PropertyRange(startEnergyReal, startEnergyVariance);
+    
+    float energyFromWaterReal = energyFromWaterBase*energyFromWaterFactor;
+    energyFromWater = new PropertyRange(energyFromWaterReal, energyFromWaterVariance);
+    
+    float growDistanceReal = growDistanceBase*growDistanceFactor;
+    growDistance = new PropertyRange(growDistanceReal,growDistanceVariance);
+    
+    float hungerThresholdReal = hungerThresholdBase*hungerThresholdFactor;
+    hungerThreshold = new PropertyRange(hungerThresholdReal,hungerThresholdVariance);
 
     // set starting energy
     energy = startEnergy.randVal;
@@ -96,13 +117,21 @@ public class Entity : MonoBehaviour {
     
     List<Path> path = getBestPath();
     
-    if (path != null && path.Count > 2) {
-      transform.position = new Vector2(path[1].x, path[1].y);
+    if (canMove && path != null && path.Count > 2) {
+      MoveTo(path[1].x, path[1].y);
     }
     if (path != null && path.Count == 2) {
       Eat(pathfindTarget);
     }
     
+  }
+  
+  protected void MoveTo(float x, float y) {
+    MoveTo(new Vector2(x, y));
+  }
+  protected void MoveTo(Vector2 position) {
+    transform.position = position;
+    AddWait(moveDuration);
   }
 
   private List<Path> getBestPath() {
@@ -184,7 +213,17 @@ public class Entity : MonoBehaviour {
 
   public void _Update() {
     
+    addToBrain = null;
+    
     if (!isAwake) { return; }
+    
+    // are we waiting from an action?
+    if (waitCycles-- > 0) { return; }
+    
+    // are we idle?
+    if (idleCycles-- > 0) { Idle(); }
+    
+    bool isIdle = true;
     
     currentAge++;
     energy -= energyLoss;
@@ -205,6 +244,7 @@ public class Entity : MonoBehaviour {
     
       if (pathfindTarget != null) {
         MoveToTarget();
+        isIdle = false;
       }
     }
     
@@ -217,6 +257,11 @@ public class Entity : MonoBehaviour {
 
     // update colour
     float healthRatio = energy / maxEnergy;
+    
+    // give dying default colour
+    if (dyingRed == 0f) { dyingRed = healthyRed / 2; }
+    if (dyingGreen == 0f) { dyingGreen = healthyGreen / 2; }
+    if (dyingBlue == 0f) { dyingBlue = healthyBlue / 2; }
 
     float redRange = healthyRed - dyingRed;
     float greenRange = healthyGreen - dyingGreen;
@@ -232,31 +277,19 @@ public class Entity : MonoBehaviour {
     
     spriteRenderer.color = new Color(newRed, newGreen, newBlue, 1f);
 
+    if (isIdle) { Idle(); }
+
   }
 
   void Feed() {
     float totalNewEnergy = 0;
     float energyFromWaterVal = energyFromWater.randVal;
-    float energyFromSurroundingSameVal = energyPerAdjacentSame.randVal;
     
     if (energyFromWaterVal > 0) {
       float distanceToWater = Mathf.Min(maxWaterDistance, DistanceToWater());
       float energyFromWaterTotal = energyFromWaterVal * ((maxWaterDistance - distanceToWater) / maxWaterDistance);
       
       totalNewEnergy += energyFromWaterTotal;
-    }
-
-    if (energyFromSurroundingSameVal != 0) {
-      // determine same surrounding object
-      int surroundingSame = 0;
-      foreach (Collider2D curSurrounding in surroundings) {
-        if (curSurrounding.name == gameObject.name) {
-          surroundingSame++;
-        }
-      }
-
-      totalNewEnergy += energyFromSurroundingSameVal * surroundingSame;
-
     }
 
     // linearly reduce energy gain as age reaches max
@@ -268,13 +301,17 @@ public class Entity : MonoBehaviour {
   
   void Eat(GameObject meal) {
     
+    if (pathfindTarget == null) { return; }
+    
     Entity targetEntity = pathfindTarget.GetComponent<Entity>();
     float targetEnergy = targetEntity.energy;
     
     float totalNewEnergy = targetEnergy * ((maxAge - currentAge) / maxAge);
     
-    this.energy += totalNewEnergy;
+    energy += totalNewEnergy;
     targetEntity.Die();
+    
+    AddWait(eatDuration);
     
   }
 
@@ -286,11 +323,54 @@ public class Entity : MonoBehaviour {
       GameObject newObj = Grow();
       if (newObj != null) {
         energy -= growthCost;
+        AddWait(reproduceDuration);
         return newObj;
       }
 
     }
     return null;
+  }
+  
+  private void AddWait(float duration) {
+    waitCycles += duration;
+  }
+  
+  private void AddIdle(float duration) {
+    idleCycles += duration;
+  }
+  
+  private void Idle() {
+    
+    if (canMove) {
+      // pick a random direction
+      int randX = Random.Range(-1, 2);
+      int randY = Random.Range(-1, 2);
+      
+      // 0,0 is current position
+      if (randX != 0 || randY != 0) {
+        Vector2 position = (Vector2) transform.position + new Vector2( randX, randY );
+        MoveTo(position);
+      }
+    }
+    
+  }
+  
+  // check for collision based on x,y
+  protected bool CheckCollisionAt(float x, float y) {
+    Vector2 position = (Vector2) transform.position + new Vector2( x, y );
+    
+    return CheckCollisionAt(position);
+  }
+  
+  // check for collision based on Vector2
+  protected bool CheckCollisionAt(Vector2 position) {
+    
+    // check if there's anything there
+    Collider2D[] collisions = Physics2D.OverlapBoxAll( position, new Vector2( 1, 1 ), 0f, blockingLayer );
+  
+    if (collisions.Length == 0) { return false; }
+    
+    return true;
   }
 
   GameObject Grow() {
@@ -304,11 +384,8 @@ public class Entity : MonoBehaviour {
     // skip if we pick center
     if (randX != 0 || randY != 0) {
       Vector2 randPosition = (Vector2) transform.position + new Vector2( randX, randY );
-      
-      // check if there's anything there
-      Collider2D[] collisions = Physics2D.OverlapBoxAll( randPosition, new Vector2( 1, 1 ), 0f, blockingLayer );
     
-      if (collisions.Length == 0) {
+      if (!CheckCollisionAt(randPosition)) {
         GameObject newObj = Instantiate(gameObject, randPosition, Quaternion.identity);
         newObj.name = gameObject.name;
         return newObj;
@@ -467,9 +544,9 @@ public class Entity : MonoBehaviour {
   }
   
   private bool CheckForPathCollision(Vector2 start, Vector2 end) {
-    this.GetComponent<BoxCollider2D>().enabled = false;
+    GetComponent<BoxCollider2D>().enabled = false;
     RaycastHit2D hit = Physics2D.Linecast (start, end, blockingLayer);
-    this.GetComponent<BoxCollider2D>().enabled = true;
+    GetComponent<BoxCollider2D>().enabled = true;
     // trying to walk into a wall, change direction
     if (hit.transform != null)
     {
@@ -500,8 +577,8 @@ public class Entity : MonoBehaviour {
     public float max;
 
     public PropertyRange(float _base, float _var) {
-      min = _base - _var;
-      max = _base + _var;
+      min = _base - (_base*_var);
+      max = _base + (_base*_var);
     }
 
     public float randVal {

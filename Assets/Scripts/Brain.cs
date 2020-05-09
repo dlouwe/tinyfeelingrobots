@@ -6,10 +6,9 @@ public class Brain {
 
   private int maxSize = 0;
   public int cyclesPerUpdate;
-  // public int cyclesPerUpdateMax = 7;
-  // public int cyclesPerUpdateMin = 4;
-  public int cyclesPerUpdateMax = 1;
-  public int cyclesPerUpdateMin = 1;
+  public int cyclesSinceUpdate = 0;
+  public int cyclesPerUpdateMax = 20;
+  public int cyclesPerUpdateMin = 10;
 
   private List <GameObject> entities = new List <GameObject> ();
 
@@ -28,6 +27,10 @@ public class Brain {
   public void setMaxSize( int maxSize ) {
     this.maxSize = maxSize;
   }
+  
+  public void setCyclesMax(int cycles) { cyclesPerUpdateMax = cycles; }
+  public void setCyclesMin(int cycles) { cyclesPerUpdateMin = cycles; }
+  public void setCyclesPer(int cycles) { cyclesPerUpdate = cycles; }
 
   void Awake () {
     
@@ -39,13 +42,16 @@ public class Brain {
   public void Update () {
     
     // wait for semi-random number of cycles
-    if (entities.Count < 1  || cyclesPerUpdate-- > 0) {
+    if (entities.Count < 1 || cyclesPerUpdate > cyclesSinceUpdate) {
+      cyclesSinceUpdate++;
       return;
     }
     else {
       resetCycles();
     }
+    
 
+    
     GameObject randEntity = GetRandomEntity();
 
     if (!randEntity.activeSelf) {
@@ -57,7 +63,6 @@ public class Brain {
 
     if(entityScript.addToBrain != null) {
 
-      // on max size, split to new brain
       if (entities.Count < maxSize) {
         AddEntity(entityScript.addToBrain);
       }
@@ -85,7 +90,8 @@ public class Brain {
   }
   
   void resetCycles() {
-    cyclesPerUpdate = Random.Range(cyclesPerUpdateMin, cyclesPerUpdateMax+1);
+    cyclesSinceUpdate = 0;
+    setCyclesPer(Random.Range(cyclesPerUpdateMin, cyclesPerUpdateMax+1));
   }
 
   GameObject GetRandomEntity() {

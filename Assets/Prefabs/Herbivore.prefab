@@ -29,7 +29,7 @@ Transform:
   m_GameObject: {fileID: 1372270510580250}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.9, y: 0.9, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
@@ -146,28 +146,31 @@ MonoBehaviour:
   maxAge: 500
   blockingLayer:
     serializedVersion: 2
-    m_Bits: 512
+    m_Bits: 528
   addToBrain: {fileID: 0}
   energy: 1
   maxEnergy: 100
   energyLoss: 1
-  hungerThresholdBase: 80
-  hungerThresholdVariance: 10
-  startEnergyBase: 80
-  startEnergyVariance: 10
-  energyPerAdjacentSameBase: 0
-  energyPerAdjacentSameVariance: 0
+  hungerThresholdBase: 100
+  hungerThresholdFactor: 0.8
+  hungerThresholdVariance: 0.1
+  startEnergyBase: 100
+  startEnergyFactor: 0.8
+  startEnergyVariance: 0.1
   energyFromWaterBase: 0
+  energyFromWaterFactor: 0
   energyFromWaterVariance: 0
   growDistanceBase: 1
+  growDistanceFactor: 1
   growDistanceVariance: 1
   size: 2
   healthyRed: 255
   healthyGreen: 0
-  healthyBlue: 0
-  dyingRed: 100
+  healthyBlue: 25
+  dyingRed: 0
   dyingGreen: 0
   dyingBlue: 0
   growthThreshold: 50
-  growthChance: 0.05
+  growthChance: 0.1
   growthCost: 25
+  canMove: 1

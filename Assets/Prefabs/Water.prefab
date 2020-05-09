@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 61889132256385618}
   - component: {fileID: 50490870932555924}
   - component: {fileID: 114747823860368464}
-  m_Layer: 9
+  m_Layer: 4
   m_Name: Water
   m_TagString: Water
   m_Icon: {fileID: 0}
@@ -144,4 +144,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   blockingLayer:
     serializedVersion: 2
-    m_Bits: 512
+    m_Bits: 528

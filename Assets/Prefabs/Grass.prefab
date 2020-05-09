@@ -146,21 +146,23 @@ MonoBehaviour:
   maxAge: 25
   blockingLayer:
     serializedVersion: 2
-    m_Bits: 512
+    m_Bits: 528
   addToBrain: {fileID: 0}
   energy: 1
   maxEnergy: 80
   energyLoss: 2
-  hungerThresholdBase: -1
+  hungerThresholdBase: 100
+  hungerThresholdFactor: -1
   hungerThresholdVariance: 0
-  startEnergyBase: 60
-  startEnergyVariance: 10
-  energyPerAdjacentSameBase: -0.0575
-  energyPerAdjacentSameVariance: 0.0075
+  startEnergyBase: 100
+  startEnergyFactor: 0.6
+  startEnergyVariance: 0.1
   energyFromWaterBase: 5
-  energyFromWaterVariance: 0.25
+  energyFromWaterFactor: 1
+  energyFromWaterVariance: 0.1
   growDistanceBase: 5
-  growDistanceVariance: 4
+  growDistanceFactor: 1
+  growDistanceVariance: 1
   size: 1
   healthyRed: 0
   healthyGreen: 75
@@ -171,3 +173,4 @@ MonoBehaviour:
   growthThreshold: 50
   growthChance: 0.5
   growthCost: 5
+  canMove: 0

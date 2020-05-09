@@ -166,10 +166,12 @@ public class BoardManager : MonoBehaviour {
         
         Brain newBrain = new Brain();
         newBrain.setMaxSize(brain.getMaxSize());
-        newBrain.cyclesPerUpdateMax = brain.cyclesPerUpdateMax;
-        newBrain.cyclesPerUpdateMin = brain.cyclesPerUpdateMin;
-        newBrain.setEntities( brain.Split() );
+        newBrain.setCyclesMax(brain.cyclesPerUpdateMax);
+        newBrain.setCyclesMin(brain.cyclesPerUpdateMin);
+        newBrain.setCyclesPer(brain.cyclesPerUpdateMin);
+        newBrain.setEntities(brain.Split());
         newBrains.Add(newBrain);
+        continue;
         
       }
       
@@ -183,7 +185,6 @@ public class BoardManager : MonoBehaviour {
     
     foreach (Brain newBrain in newBrains) { brains.Add(newBrain); }
     foreach (Brain removeBrain in removeBrains) { brains.Remove(removeBrain); }
-    
 
   }
 }
