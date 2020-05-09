@@ -30,24 +30,30 @@ public class Entity : MonoBehaviour {
   protected SpriteRenderer spriteRenderer;
 
   public PropertyRange hungerThreshold;
-  public float hungerThresholdBase;
+  protected float hungerThresholdBase = 100;
   public float hungerThresholdFactor;
   public float hungerThresholdVariance;
 
   protected PropertyRange startEnergy;
-  public float startEnergyBase;
+  protected float startEnergyBase = 100;
   public float startEnergyFactor;
   public float startEnergyVariance;
   protected PropertyRange energyFromWater;
-  public float energyFromWaterBase;
+  protected float energyFromWaterBase = 5;
   public float energyFromWaterFactor;
   public float energyFromWaterVariance;
   protected PropertyRange growDistance;
-  public float growDistanceBase;
+  protected float growDistanceBase = 1;
   public float growDistanceFactor;
   public float growDistanceVariance;
   
-  protected PropertyRange speedFactor;
+  protected PropertyRange idealChildren;
+  protected float idealChildrenBase = 1;
+  public float idealChildrenFactor;
+  public float idealChildrenVariance;
+  protected float totalChildren = 0;
+  
+  // protected PropertyRange speedFactor;
   
   public float size;
 
@@ -99,11 +105,15 @@ public class Entity : MonoBehaviour {
     
     float hungerThresholdReal = hungerThresholdBase*hungerThresholdFactor;
     hungerThreshold = new PropertyRange(hungerThresholdReal,hungerThresholdVariance);
+    
+    float idealChildrenReal = idealChildrenBase*idealChildrenFactor;
+    idealChildren = new PropertyRange(idealChildrenReal,idealChildrenVariance);
 
     // set starting energy
     energy = startEnergy.randVal;
 
     currentAge = 1;
+    totalChildren = 0;
     
     isAwake = true;
 
@@ -317,8 +327,19 @@ public class Entity : MonoBehaviour {
 
   public GameObject AttemptGrow () {
 
+    // modify growthChance based on ideal vs total children
+    float idealChildrenCurrent = idealChildren.randVal;
+    if (totalChildren >= idealChildrenCurrent) {
+      
+      // start at 50% reduction; grow with additional children
+      growthChance *= (idealChildrenCurrent / (totalChildren*2));
+      
+    }
+
     // do we meet conditions to grow?
     if (energy > growthThreshold && surroundings != null && surroundings.Length < 8 && Random.Range(0f,1f) <= growthChance) {
+      
+      totalChildren++;
 
       GameObject newObj = Grow();
       if (newObj != null) {

@@ -151,18 +151,16 @@ MonoBehaviour:
   energy: 1
   maxEnergy: 100
   energyLoss: 1
-  hungerThresholdBase: 100
   hungerThresholdFactor: 0.8
   hungerThresholdVariance: 0.1
-  startEnergyBase: 100
   startEnergyFactor: 0.8
   startEnergyVariance: 0.1
-  energyFromWaterBase: 0
   energyFromWaterFactor: 0
   energyFromWaterVariance: 0
-  growDistanceBase: 1
   growDistanceFactor: 1
   growDistanceVariance: 1
+  idealChildrenFactor: 2
+  idealChildrenVariance: 1
   size: 2
   healthyRed: 255
   healthyGreen: 0
@@ -171,6 +169,6 @@ MonoBehaviour:
   dyingGreen: 0
   dyingBlue: 0
   growthThreshold: 50
-  growthChance: 0.1
+  growthChance: 0.5
   growthCost: 25
   canMove: 1
