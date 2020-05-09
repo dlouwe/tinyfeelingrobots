@@ -9,6 +9,7 @@ public class Entity : MonoBehaviour {
   public float maxAge;
 
   public LayerMask blockingLayer;
+  public LayerMask obstacleLayer;
   public GameObject addToBrain = null;
 
   public float energy;
@@ -22,8 +23,6 @@ public class Entity : MonoBehaviour {
 
   protected GameObject pathfindTarget = null;
   protected float speed = 0f;
-
-  protected Collider2D[] surroundings;
 
   protected BoxCollider2D boxCollider;
   protected Rigidbody2D rb2D;
@@ -140,8 +139,10 @@ public class Entity : MonoBehaviour {
     MoveTo(new Vector2(x, y));
   }
   protected void MoveTo(Vector2 position) {
-    transform.position = position;
-    AddWait(moveDuration);
+    if (CheckWalkableAt(position)) {
+      transform.position = position;
+      AddWait(moveDuration);
+    }
   }
 
   private List<Path> getBestPath() {
@@ -237,7 +238,6 @@ public class Entity : MonoBehaviour {
     
     currentAge++;
     energy -= energyLoss;
-    surroundings = CheckSurroundings();
     
     if (energy <= 1) {
       gameObject.SetActive(false);
@@ -337,7 +337,7 @@ public class Entity : MonoBehaviour {
     }
 
     // do we meet conditions to grow?
-    if (energy > growthThreshold && surroundings != null && surroundings.Length < 8 && Random.Range(0f,1f) <= growthChance) {
+    if (energy > growthThreshold && Random.Range(0f,1f) <= growthChance) {
       
       totalChildren++;
 
@@ -393,6 +393,24 @@ public class Entity : MonoBehaviour {
     
     return true;
   }
+  
+  // check if tile is walkable (coords)
+  protected bool CheckWalkableAt(float x, float y) {
+    Vector2 position = (Vector2) transform.position + new Vector2( x, y );
+    
+    return CheckWalkableAt(position);
+  }
+  
+  // check if tile is walkable (Vector2)
+  protected bool CheckWalkableAt(Vector2 position) {
+    
+    // check if there's anything there
+    Collider2D[] collisions = Physics2D.OverlapBoxAll( position, new Vector2( 1, 1 ), 0f, obstacleLayer );
+    
+    if (collisions.Length == 0) { return true; }
+    
+    return false;
+  }
 
   GameObject Grow() {
 
@@ -406,7 +424,7 @@ public class Entity : MonoBehaviour {
     if (randX != 0 || randY != 0) {
       Vector2 randPosition = (Vector2) transform.position + new Vector2( randX, randY );
     
-      if (!CheckCollisionAt(randPosition)) {
+      if (CheckWalkableAt(randPosition)) {
         GameObject newObj = Instantiate(gameObject, randPosition, Quaternion.identity);
         newObj.name = gameObject.name;
         return newObj;
@@ -416,19 +434,7 @@ public class Entity : MonoBehaviour {
     return null;
 
   }
-
-  protected Collider2D[] CheckSurroundings() {
-
-    if (!boxCollider) {return null;}
-
-    boxCollider.enabled = false;
-    Collider2D[] collisions = Physics2D.OverlapBoxAll( transform.position, new Vector2(3, 3), 0f, blockingLayer );
-    boxCollider.enabled = true;
-
-    return collisions;
-
-  }
-
+  
   public void changeEnergy( float energyChange ) {
     energy += energyChange;
   }
@@ -566,7 +572,7 @@ public class Entity : MonoBehaviour {
   
   private bool CheckForPathCollision(Vector2 start, Vector2 end) {
     GetComponent<BoxCollider2D>().enabled = false;
-    RaycastHit2D hit = Physics2D.Linecast (start, end, blockingLayer);
+    RaycastHit2D hit = Physics2D.Linecast (start, end, obstacleLayer);
     GetComponent<BoxCollider2D>().enabled = true;
     // trying to walk into a wall, change direction
     if (hit.transform != null)
@@ -581,9 +587,7 @@ public class Entity : MonoBehaviour {
         }
       }
       
-      if (hit.transform.gameObject.tag == "Water") {
-        return true;
-      }
+      return true;
     }
     return false;
   }

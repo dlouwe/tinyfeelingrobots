@@ -58,7 +58,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   blockingLayer:
     serializedVersion: 2
-    m_Bits: 512
+    m_Bits: 528
   water: {fileID: 1444673565350492, guid: bb0738235c9ac394388656d07168ed8a, type: 3}
   grass: {fileID: 1522698477088948, guid: f8d67c437328acc44a887b8993b4f876, type: 3}
   ground: {fileID: 1378001606438150, guid: 8da99c47a262e0947917304b2e62170a, type: 3}
