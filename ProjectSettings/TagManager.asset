@@ -44,9 +44,9 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
-  - name: Things
-    uniqueID: 1343607475
-    locked: 0
   - name: Floor
     uniqueID: 1632043793
+    locked: 0
+  - name: Things
+    uniqueID: 1343607475
     locked: 0

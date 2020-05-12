@@ -143,7 +143,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentAge: 1
-  maxAge: 25
+  maxAge: 300
   blockingLayer:
     serializedVersion: 2
     m_Bits: 528
@@ -160,8 +160,8 @@ MonoBehaviour:
   startEnergyVariance: 0.1
   energyFromWaterFactor: 1
   energyFromWaterVariance: 0.1
-  growDistanceFactor: 5
-  growDistanceVariance: 1
+  growDistanceFactor: 3
+  growDistanceVariance: 3
   idealChildrenFactor: 1000
   idealChildrenVariance: 0
   size: 1

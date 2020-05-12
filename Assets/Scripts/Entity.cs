@@ -17,11 +17,17 @@ public class Entity : MonoBehaviour {
   public float energyLoss;
   
   protected float maxWaterDistance = 75f;
-  private float maxSearchDistance = 40f;
-  private float maxPathNodes = 25f;
+  private float maxSearchDistance = 75f;
   private float defaultSearchDistance = 4f;
+  
+  private List<Path> savedPath;
+  private float maxPathSearchNodes = 100f;
+  private float savedPathAge = 0f;
+  private float pathExpiry = 10f;
+  
 
   protected GameObject pathfindTarget = null;
+  private List<GameObject> blacklistTargets = new List<GameObject>();
   protected float speed = 0f;
 
   protected BoxCollider2D boxCollider;
@@ -79,6 +85,7 @@ public class Entity : MonoBehaviour {
   private float eatDuration = 5f;
   private float reproduceDuration = 5f;
   private float moveDuration = 5f;
+  private float defaultIdle = 5f;
 
   // Use this for initialization
   void Awake () {
@@ -91,7 +98,6 @@ public class Entity : MonoBehaviour {
 
     //Get a component reference to this object's SpriteRenderer
     spriteRenderer = GetComponent <SpriteRenderer> ();
-    
 
     float startEnergyReal = startEnergyBase*startEnergyFactor;
     startEnergy = new PropertyRange(startEnergyReal, startEnergyVariance);
@@ -122,9 +128,24 @@ public class Entity : MonoBehaviour {
 
   protected void MoveToTarget() {
 
-    if (!pathfindTarget) { return; }
+    if (!pathfindTarget && savedPath == null) { return; }
     
-    List<Path> path = getBestPath();
+    List<Path> path = null;
+    
+    // check if we have a saved path
+    if (savedPath != null) {
+      
+      // check if saved path expires
+      savedPathAge++;
+      if (savedPathAge > pathExpiry) { savedPath = null; } // expired path; null it
+      else                           { path = savedPath; } // valid path; use it
+      
+    }
+    
+    if (path == null) {
+      path = getBestPath();
+      savedPath = path;
+    }
     
     if (canMove && path != null && path.Count > 2) {
       MoveTo(path[1].x, path[1].y);
@@ -159,12 +180,15 @@ public class Entity : MonoBehaviour {
       currentSquare = getPathWithLowestFScore(evaluationList);
       
       // hard-limit path nodes when no path can be found
-      if (evaluationList.Count > maxPathNodes || closedPathList.Count > 500) { 
+      if (evaluationList.Count > maxPathSearchNodes || closedPathList.Count > maxPathSearchNodes) { 
         
         // this may be a bad path; pick a new target
+        blacklistTargets.Add(pathfindTarget);
         pathfindTarget = null;
         
-        return buildPath(currentSquare); 
+        // walk to the best path we found
+        return buildPath(currentSquare);
+        
       }
 
       closedPathList.Add(currentSquare);
@@ -232,7 +256,7 @@ public class Entity : MonoBehaviour {
     if (waitCycles-- > 0) { return; }
     
     // are we idle?
-    if (idleCycles-- > 0) { Idle(); }
+    if (idleCycles-- > 0) { Idle(); return; }
     
     bool isIdle = true;
     
@@ -255,6 +279,9 @@ public class Entity : MonoBehaviour {
       if (pathfindTarget != null) {
         MoveToTarget();
         isIdle = false;
+      }
+      else {
+        AddIdle(defaultIdle);
       }
     }
     
@@ -338,11 +365,11 @@ public class Entity : MonoBehaviour {
 
     // do we meet conditions to grow?
     if (energy > growthThreshold && Random.Range(0f,1f) <= growthChance) {
-      
-      totalChildren++;
-
+    
       GameObject newObj = Grow();
+      
       if (newObj != null) {
+        totalChildren++;
         energy -= growthCost;
         AddWait(reproduceDuration);
         return newObj;
@@ -468,8 +495,12 @@ public class Entity : MonoBehaviour {
     
     // pick random meal in range
     int randMeal = Random.Range(0, filteredCollisions.Count);
+    
+    GameObject foundMeal = filteredCollisions[randMeal].gameObject;
 
-    return filteredCollisions[randMeal].gameObject;
+    if (foundMeal != null && blacklistTargets.Contains(foundMeal)) { return null; }
+
+    return foundMeal;
     
   }
 

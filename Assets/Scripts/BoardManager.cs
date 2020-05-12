@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using Random = UnityEngine.Random; 
 
 public class BoardManager : MonoBehaviour {
@@ -19,6 +20,11 @@ public class BoardManager : MonoBehaviour {
           maximum = max;
       }
   }
+  
+  private Text debugText;
+  private float debugRefresh = 50f;
+  private float cycleCount = 50f;
+  private float totalCycles = 0f;
 
   public LayerMask blockingLayer;
 
@@ -41,6 +47,9 @@ public class BoardManager : MonoBehaviour {
 
   void InitializeGrid() {
 
+    debugText = GameObject.Find("DebugText").GetComponent<Text>();
+    debugText.text = "";
+    
     water.name = "Water";
     LayoutObjectAtRandom(water, waterSeedsMin, waterSeedsMax);
 
@@ -65,8 +74,8 @@ public class BoardManager : MonoBehaviour {
     int grassSeedsMax = Mathf.RoundToInt(totalSquares * grassChance);
     int grassSeedsMin = Mathf.RoundToInt(grassSeedsMax * grassChance);
 
-    LayoutEntityAtRandom(grass, grassSeedsMin, grassSeedsMax, 60);
-    LayoutEntityAtRandom(herbivore, 2, 2, 2);
+    LayoutEntityAtRandom(grass, grassSeedsMin, grassSeedsMax, 200, 20, 40);
+    LayoutEntityAtRandom(herbivore, 10, 10, 3, 5, 10);
 
   }
 
@@ -102,15 +111,18 @@ public class BoardManager : MonoBehaviour {
     }
   }
 
-  void LayoutEntityAtRandom( GameObject entity, int minimum, int maximum, int maxSize ) {
+  void LayoutEntityAtRandom( GameObject entity, int minimum, int maximum, int maxSize, int cyclesMin, int cyclesMax ) {
     int objectCount = Random.Range(minimum, maximum+1);
 
     for (int i = 0; i < objectCount; i++) {
       Vector2 randomPosition = RandomPosition();
       Brain brain = new Brain();
 
-      brain.cyclesPerUpdateMax = 20;
-      brain.cyclesPerUpdateMin = 10;
+      // brain.cyclesPerUpdateMax = 1;
+      // brain.cyclesPerUpdateMin = 1;
+
+      brain.cyclesPerUpdateMax = cyclesMin;
+      brain.cyclesPerUpdateMin = cyclesMax;
       brain.setMaxSize(maxSize);
 
       GameObject newEntity = Instantiate(entity, randomPosition, Quaternion.identity);
@@ -186,5 +198,40 @@ public class BoardManager : MonoBehaviour {
     foreach (Brain newBrain in newBrains) { brains.Add(newBrain); }
     foreach (Brain removeBrain in removeBrains) { brains.Remove(removeBrain); }
 
+    totalCycles++;
+  
+    List<string> entityNames = new List<string>();
+    List<int> entityCounts = new List<int>();
+  
+    if (cycleCount++ > debugRefresh) {
+      cycleCount = 0;
+      
+      GameObject[] entities = GameObject.FindGameObjectsWithTag("Entity");
+      foreach (GameObject entity in entities) {
+        
+        if (!entityNames.Contains(entity.name)) {
+          entityNames.Add(entity.name);
+        }
+        int nameIndex = entityNames.IndexOf(entity.name);
+        
+        if (entityCounts.Count <= nameIndex) {
+          entityCounts.Add(1);
+        }
+        else {
+          entityCounts[nameIndex]++;
+        }
+        
+      }
+      
+      debugText.text = "Game Cycles: " + totalCycles;
+      
+      for (int key = 0; key < entityNames.Count; ++key) {
+        
+        debugText.text += "\n" + entityNames[key] + ": " + entityCounts[key];
+        
+      }
+      
+      debugText.text += "\nBrains: " + brains.Count;
+    }
   }
 }
